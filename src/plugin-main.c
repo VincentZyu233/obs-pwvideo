@@ -35,6 +35,10 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
+
+extern struct obs_source_info create_pw_filter_info();
+struct obs_source_info pw_filter_info;
+
 MODULE_EXPORT const char *obs_module_description(void)
 {
 	return "Generic PipeWire video source";
@@ -633,6 +637,9 @@ bool obs_module_load(void)
 	pw_init(NULL, NULL);
 
 	pipewire_video_load();
+	
+	pw_filter_info = create_pw_filter_info();
+	obs_register_source(&pw_filter_info);
 
 	obs_log(LOG_INFO, "plugin loaded successfully (version %s)", PLUGIN_VERSION);
 	return true;
