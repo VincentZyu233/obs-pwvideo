@@ -74,3 +74,50 @@ The PipeWire code is based on the upstream OBS source code, which at the time of
 * dimtpap
 * Hoshino Lina
 * Aleix Pol
+
+## NixOS
+
+Currently only [nix flakes](https://nixos.wiki/wiki/flakes) are supported.
+
+To use this project on NixOS or by using the nix package manager, follow the following steps:
+
+- Add the following to your `flake.nix`:
+
+    ```nix
+    inputs.obs-pwvideo = {
+      url = "github:tasokait/obs-pwvideo";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    ```
+
+- *(Optionally)* Add `inputs.obs-pwvideo.overlays.default` to [your overlays](https://wiki.nixos.org/wiki/Overlays#Using_overlays).
+
+- Add `pkgs.obs-studio-plugins.obs-pwvideo` (or `inputs.obs-pwvideo.packages.x86_64-linux.obs-pwvideo` if you did not add the overlay) to your installation using [home-manager](https://github.com/nix-community/home-manager) (recommended):
+
+  ```nix
+  programs.obs-studio = {
+    enable = true;
+    plugins =
+    with pkgs.obs-studio-plugins;
+    [
+      obs-pwvideo
+      # TODO: add additional OBS plugins
+    ];
+  };
+  ```
+
+  You may also install the package without home-manager by using [`pkgs.wrapOBS`](https://noogle.dev/f/pkgs/wrapOBS/) like this:
+
+  ```nix
+  (
+    let
+      obs-studio = pkgs.obs-studio;
+      plugins =
+      with pkgs.obs-studio-plugins;
+      [
+        (obs-pwvideo.override { inherit obs-studio; })
+      ];
+    in
+    pkgs.wrapOBS.override { inherit obs-studio; } { inherit plugins; }
+  )
+  ```
