@@ -7,6 +7,7 @@
 !/cmake
 !/data
 !/src
+!/nix
 !.clang-format
 !.gersemirc
 !.gitignore
@@ -16,6 +17,8 @@
 !LICENSE
 !README.md
 !FUNDING.yml
+!flake.nix
+!flake.lock
 
 # Exclude lock files
 *.lock.json
