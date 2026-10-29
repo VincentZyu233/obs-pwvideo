@@ -47,5 +47,6 @@ target_sources(
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${libdrm_include_directories})
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE PipeWire::PipeWire)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE EGL GL)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

@@ -804,15 +804,6 @@ static void set_target(void *data, uint64_t expirations)
 
 static void return_unused_pw_buffer(struct pw_stream *stream, struct pw_buffer *b)
 {
-#if PW_CHECK_VERSION(1, 2, 0)
-	struct spa_buffer *buffer = b->buffer;
-	struct spa_data *last_data = &buffer->datas[buffer->n_datas - 1];
-	struct spa_meta_sync_timeline *synctimeline =
-		spa_buffer_find_meta_data(buffer, SPA_META_SyncTimeline, sizeof(struct spa_meta_sync_timeline));
-
-	if (synctimeline && (last_data->type == SPA_DATA_SyncObj))
-		gs_sync_signal_syncobj_timeline_point(last_data->fd, synctimeline->release_point);
-#endif
 	pw_stream_queue_buffer(stream, b);
 }
 
@@ -1343,9 +1334,8 @@ static void on_param_changed_cb(void *user_data, uint32_t id, const struct spa_p
 	    (output_flags & OBS_SOURCE_ASYNC_VIDEO) != OBS_SOURCE_ASYNC_VIDEO) {
 		buffer_types |= 1 << SPA_DATA_DmaBuf;
 #if PW_CHECK_VERSION(1, 2, 0)
-		obs_enter_graphics();
-		supports_explicit_sync = gs_query_sync_capabilities();
-		obs_leave_graphics();
+		/* Explicit sync needs newer OBS graphics APIs; disabled for OBS 30.2.3. */
+		supports_explicit_sync = false;
 #endif
 	}
 
@@ -1819,15 +1809,6 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream, gs_eff
 	if (!texture || !pb->buf)
 		return;
 
-	if (pb->sync.set) {
-		blog(LOG_DEBUG, "[pipewire] Acquiring sync %d/%ld", pb->sync.acquire_syncobj_fd,
-		     (long)pb->sync.acquire_point);
-		gs_sync_t *acquire_sync =
-			gs_sync_create_from_syncobj_timeline_point(pb->sync.acquire_syncobj_fd, pb->sync.acquire_point);
-		gs_sync_wait(acquire_sync);
-		gs_sync_destroy(acquire_sync);
-	}
-
 	image = gs_effect_get_param_by_name(effect, "image");
 	gs_effect_set_texture(image, texture);
 
@@ -1869,13 +1850,6 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream, gs_eff
 	}
 
 	gs_blend_state_pop();
-
-	if (pb->sync.set) {
-		gs_sync_t *release_sync = gs_sync_create();
-		gs_sync_export_syncobj_timeline_point(release_sync, pb->sync.release_syncobj_fd,
-						      pb->sync.release_point);
-		gs_sync_destroy(release_sync);
-	}
 
 	assert(pb->state >= BUFFER_PRESENTING);
 	pb->state = BUFFER_PRESENTED;

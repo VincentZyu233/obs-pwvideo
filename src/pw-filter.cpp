@@ -106,8 +106,10 @@ static spa_video_format drm_to_spa(int forcc){
 			return SPA_VIDEO_FORMAT_ARGB64;
         case DRM_FORMAT_ABGR16161616F:
 			return SPA_VIDEO_FORMAT_RGBA_F16;
+#ifdef DRM_FORMAT_ABGR32323232F
         case DRM_FORMAT_ABGR32323232F:
-			return SPA_VIDEO_FORMAT_RGBA_F32;
+ 			return SPA_VIDEO_FORMAT_RGBA_F32;
+#endif
 		default:
 			//just making the compiler shutup
 			return SPA_VIDEO_FORMAT_BGRA;
