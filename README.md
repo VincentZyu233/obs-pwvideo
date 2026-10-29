@@ -43,11 +43,28 @@ cmake --build build -j
 This will configure + build. Afterwards:
 ```bash
 mkdir -p ~/.config/obs-studio/plugins/obs-pwvideo/bin/64bit
-mkdir -p ~/.config/obs-studio/obs-pwvideo/data
+mkdir -p ~/.config/obs-studio/plugins/obs-pwvideo/data
 # Copy Plugin .so
 cp build/obs-pwvideo.so ~/.config/obs-studio/plugins/obs-pwvideo/bin/64bit/
 # Copy data
 cp data/* ~/.config/obs-studio/plugins/obs-pwvideo/data/
+```
+
+### OBS 30 compatibility
+
+This fork detects whether the installed libobs provides the `gs_sync_t`
+explicit-sync API. On OBS 30.2.3 the API is absent, so the plugin builds with
+explicit sync disabled and keeps the normal shared-memory/DMA-BUF video path.
+The behavior can be controlled explicitly:
+
+```bash
+# AUTO (default): enable only when libobs provides gs_sync_t
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DOBS_PWVIDEO_EXPLICIT_SYNC=AUTO
+
+# Force it off (for example when building against OBS 30)
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DOBS_PWVIDEO_EXPLICIT_SYNC=OFF
 ```
 
 ## Credits

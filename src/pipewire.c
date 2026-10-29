@@ -804,7 +804,7 @@ static void set_target(void *data, uint64_t expirations)
 
 static void return_unused_pw_buffer(struct pw_stream *stream, struct pw_buffer *b)
 {
-#if PW_CHECK_VERSION(1, 2, 0)
+#if defined(HAVE_OBS_EXPLICIT_SYNC) && PW_CHECK_VERSION(1, 2, 0)
 	struct spa_buffer *buffer = b->buffer;
 	struct spa_data *last_data = &buffer->datas[buffer->n_datas - 1];
 	struct spa_meta_sync_timeline *synctimeline =
@@ -1318,7 +1318,7 @@ static void on_param_changed_cb(void *user_data, uint32_t id, const struct spa_p
 	uint32_t output_flags;
 	uint8_t params_buffer[1024];
 	int result;
-#if PW_CHECK_VERSION(1, 2, 0)
+#if defined(HAVE_OBS_EXPLICIT_SYNC) && PW_CHECK_VERSION(1, 2, 0)
 	bool supports_explicit_sync = false;
 #endif
 
@@ -1342,7 +1342,7 @@ static void on_param_changed_cb(void *user_data, uint32_t id, const struct spa_p
 	if ((has_modifier || check_pw_version(&obs_pw->server_version, 0, 3, 24)) &&
 	    (output_flags & OBS_SOURCE_ASYNC_VIDEO) != OBS_SOURCE_ASYNC_VIDEO) {
 		buffer_types |= 1 << SPA_DATA_DmaBuf;
-#if PW_CHECK_VERSION(1, 2, 0)
+#if defined(HAVE_OBS_EXPLICIT_SYNC) && PW_CHECK_VERSION(1, 2, 0)
 		obs_enter_graphics();
 		supports_explicit_sync = gs_query_sync_capabilities();
 		obs_leave_graphics();
@@ -1380,7 +1380,7 @@ static void on_param_changed_cb(void *user_data, uint32_t id, const struct spa_p
 								    CURSOR_META_SIZE(1024, 1024)));
 
 	/* Buffer options */
-#if PW_CHECK_VERSION(1, 2, 0)
+#if defined(HAVE_OBS_EXPLICIT_SYNC) && PW_CHECK_VERSION(1, 2, 0)
 	if (supports_explicit_sync) {
 		struct spa_pod_frame dmabuf_explicit_sync_frame;
 
@@ -1398,7 +1398,7 @@ static void on_param_changed_cb(void *user_data, uint32_t id, const struct spa_p
 							SPA_PARAM_BUFFERS_dataType, SPA_POD_Int(buffer_types));
 
 	/* Sync timeline */
-#if PW_CHECK_VERSION(1, 2, 0)
+#if defined(HAVE_OBS_EXPLICIT_SYNC) && PW_CHECK_VERSION(1, 2, 0)
 	if (supports_explicit_sync) {
 		params[n_params++] = spa_pod_builder_add_object(&pod_builder, SPA_TYPE_OBJECT_ParamMeta, SPA_PARAM_Meta,
 								SPA_PARAM_META_type, SPA_POD_Id(SPA_META_SyncTimeline),
@@ -1819,6 +1819,7 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream, gs_eff
 	if (!texture || !pb->buf)
 		return;
 
+#ifdef HAVE_OBS_EXPLICIT_SYNC
 	if (pb->sync.set) {
 		blog(LOG_DEBUG, "[pipewire] Acquiring sync %d/%ld", pb->sync.acquire_syncobj_fd,
 		     (long)pb->sync.acquire_point);
@@ -1827,6 +1828,7 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream, gs_eff
 		gs_sync_wait(acquire_sync);
 		gs_sync_destroy(acquire_sync);
 	}
+#endif
 
 	image = gs_effect_get_param_by_name(effect, "image");
 	gs_effect_set_texture(image, texture);
@@ -1870,12 +1872,14 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream, gs_eff
 
 	gs_blend_state_pop();
 
+#ifdef HAVE_OBS_EXPLICIT_SYNC
 	if (pb->sync.set) {
 		gs_sync_t *release_sync = gs_sync_create();
 		gs_sync_export_syncobj_timeline_point(release_sync, pb->sync.release_syncobj_fd,
 						      pb->sync.release_point);
 		gs_sync_destroy(release_sync);
 	}
+#endif
 
 	assert(pb->state >= BUFFER_PRESENTING);
 	pb->state = BUFFER_PRESENTED;
